@@ -63,7 +63,7 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 # Params for loading pretrained basenet or checkpoints.
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
-parser.add_argument('--pretrained_ssd', default="model_log/mb2-ssd-lite-Epoch-0-Loss-1.3994622230529785.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="model_log/mb2-ssd-lite-Epoch-850-Loss-1.3402900457382203.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -80,7 +80,7 @@ parser.add_argument('--t_max', default=120, type=float,
                     help='T_max value for Cosine Annealing Scheduler.')
 
 # Train params
-parser.add_argument('--batch_size', default=24, type=int,
+parser.add_argument('--batch_size', default=20, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=200000, type=int,
                     help='the number epochs')

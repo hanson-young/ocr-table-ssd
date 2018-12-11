@@ -19,7 +19,7 @@ import cv2
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="mb2-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite or vgg16-ssd.")
-parser.add_argument("--trained_model", default= 'model_log/mb2-ssd-lite-Epoch-0-Loss-1.3994622230529785.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/mb2-ssd-lite-Epoch-625-Loss-1.3463917255401612.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -146,9 +146,16 @@ if __name__ == '__main__':
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
         sys.exit(1)  
-
+    import collections
     timer.start("Load Model")
-    net.load(args.trained_model)
+    # net.load(args.trained_model)
+    pretrained_dict = torch.load(args.trained_model)
+    # new_state_dict = collections.OrderedDict()
+    # for k, v in pretrained_dict.items():
+    #     print(k)
+    #     name = k[7:]
+    #     new_state_dict[name] = v
+    net.load_state_dict(pretrained_dict)
     net = net.to(DEVICE)
     print(f'It took {timer.end("Load Model")} seconds to load the model.')
     if args.net == 'vgg16-ssd':
@@ -191,7 +198,7 @@ if __name__ == '__main__':
         #     cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 1)
 
         for i in range(boxes.size(0)):
-            if probs[i] > 0.6:
+            if probs[i] > 0.45:
                 box = boxes[i, :]
                 b = random.randint(0, 255)
                 g = random.randint(0, 255)
