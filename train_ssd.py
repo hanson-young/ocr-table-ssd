@@ -63,7 +63,8 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 # Params for loading pretrained basenet or checkpoints.
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
-parser.add_argument('--pretrained_ssd', default="model_log/mb2-ssd-lite-Epoch-850-Loss-1.3402900457382203.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+# model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
+parser.add_argument('--pretrained_ssd', default="model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -86,9 +87,9 @@ parser.add_argument('--num_epochs', default=200000, type=int,
                     help='the number epochs')
 parser.add_argument('--num_workers', default=4, type=int,
                     help='Number of workers used in dataloading')
-parser.add_argument('--validation_epochs', default=5, type=int,
+parser.add_argument('--validation_epochs', default=20, type=int,
                     help='the number epochs')
-parser.add_argument('--debug_steps', default=100, type=int,
+parser.add_argument('--debug_steps', default=500, type=int,
                     help='Set the debug log output frequency.')
 parser.add_argument('--use_cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')

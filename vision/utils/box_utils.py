@@ -60,6 +60,13 @@ def generate_ssd_priors(specs: List[SSDSpec], image_size, clamp=True) -> torch.T
             size = spec.box_sizes.min
             h = w = size / image_size
             for ratio in spec.aspect_ratios:
+                # ratio_a = ratio
+                # priors.append([
+                #     x_center,
+                #     y_center,
+                #     w * ratio_a,
+                #     h / ratio_a
+                # ])
                 ratio = math.sqrt(ratio)
                 priors.append([
                     x_center,
@@ -67,12 +74,13 @@ def generate_ssd_priors(specs: List[SSDSpec], image_size, clamp=True) -> torch.T
                     w * ratio,
                     h / ratio
                 ])
-                priors.append([
-                    x_center,
-                    y_center,
-                    w / ratio,
-                    h * ratio
-                ])
+                # ratio = math.sqrt(ratio)
+                # priors.append([
+                #     x_center,
+                #     y_center,
+                #     w * ratio,
+                #     h / ratio
+                # ])
 
     priors = torch.tensor(priors)
     if clamp:

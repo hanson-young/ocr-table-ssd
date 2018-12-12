@@ -19,7 +19,7 @@ import cv2
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="mb2-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite or vgg16-ssd.")
-parser.add_argument("--trained_model", default= 'model_log/mb2-ssd-lite-Epoch-625-Loss-1.3463917255401612.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/mb2-ssd-lite-Epoch-540-Loss-1.2274111747741698.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     class_names = [name.strip() for name in open(args.label_file).readlines()]
 
     if args.dataset_type == "voc":
-        dataset = VOCDataset(args.dataset, is_test=True)
+        dataset = VOCDataset(args.dataset, is_test=False)
     elif args.dataset_type == 'open_images':
         dataset = OpenImagesDataset(args.dataset, dataset_type="test")
 
@@ -203,7 +203,11 @@ if __name__ == '__main__':
                 b = random.randint(0, 255)
                 g = random.randint(0, 255)
                 r = random.randint(0, 255)
-                cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 4)
+                box[0] = min(box[0] + 10, orig_image.shape[1] - 1)
+                box[1] = min(box[1] + 10, orig_image.shape[0] - 1)
+                box[2] = max(box[2] - 10, box[0])
+                box[3] = max(box[3] - 10, box[1])
+                cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
                 # label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
                 # label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
                 # cv2.putText(orig_image, label,
