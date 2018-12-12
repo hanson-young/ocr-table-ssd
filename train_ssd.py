@@ -14,6 +14,7 @@ from vision.ssd.vgg_ssd import create_vgg_ssd
 from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd
 from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite
 from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite
+from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite
 from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite
 from vision.datasets.voc_dataset import VOCDataset
 from vision.datasets.open_images import OpenImagesDataset
@@ -35,8 +36,8 @@ parser.add_argument('--balance_data', default=False, action='store_true',
                     help="Balance training data by down-sampling more frequent labels.")
 
 
-parser.add_argument('--net', default="mb2-ssd-lite",
-                    help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, mb2-ssd-lite or vgg16-ssd.")
+parser.add_argument('--net', default="jnet-ssd-lite",
+                    help="The network architecture, it can be mb1-ssd, mb1-lite-ssd, jnet-ssd-lite, mb2-ssd-lite or vgg16-ssd.")
 parser.add_argument('--freeze_base_net', default=False,action='store_true',
                     help="Freeze base net layers.")
 parser.add_argument('--freeze_net', default=False,action='store_true',
@@ -64,7 +65,7 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
-parser.add_argument('--pretrained_ssd', default="model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -114,35 +115,40 @@ def train(loader, net, criterion, optimizer, device, debug_steps=100, epoch=-1):
     running_loss = 0.0
     running_regression_loss = 0.0
     running_classification_loss = 0.0
+    running_segmentation_loss = 0.0
     for i, data in enumerate(loader):
-        images, boxes, labels = data
+        images, boxes, labels, gt_masks = data
         images = images.to(device)
         boxes = boxes.to(device)
         labels = labels.to(device)
+        gt_masks = gt_masks.to(device)
 
         optimizer.zero_grad()
-        confidence, locations = net(images)
-        regression_loss, classification_loss = criterion(confidence, locations, labels, boxes)  # TODO CHANGE BOXES
-        loss = regression_loss + classification_loss
+        confidence, locations, seg_masks = net(images)
+        regression_loss, classification_loss, segmentation_loss = criterion(confidence, locations, seg_masks, labels, boxes, gt_masks)  # TODO CHANGE BOXES
+        loss = regression_loss + classification_loss + segmentation_loss
         loss.backward()
         optimizer.step()
 
         running_loss += loss.item()
         running_regression_loss += regression_loss.item()
         running_classification_loss += classification_loss.item()
+        running_segmentation_loss += segmentation_loss.item()
         if i and i % debug_steps == 0:
             avg_loss = running_loss / debug_steps
             avg_reg_loss = running_regression_loss / debug_steps
-            avg_clf_loss = running_classification_loss / debug_steps
+            avg_seg_loss = running_segmentation_loss / debug_steps
             logging.info(
                 f"Epoch: {epoch}, Step: {i}, " +
                 f"Average Loss: {avg_loss:.4f}, " +
                 f"Average Regression Loss {avg_reg_loss:.4f}, " +
-                f"Average Classification Loss: {avg_clf_loss:.4f}"
+                f"Average Classification Loss: {avg_clf_loss:.4f}" +
+                f"Average Segmentation Loss: {avg_seg_loss:.4f}"
             )
             running_loss = 0.0
             running_regression_loss = 0.0
             running_classification_loss = 0.0
+            running_segmentation_loss = 0.0
 
 
 def test(loader, net, criterion, device):
@@ -150,23 +156,28 @@ def test(loader, net, criterion, device):
     running_loss = 0.0
     running_regression_loss = 0.0
     running_classification_loss = 0.0
+    running_segmentation_loss = 0.0
     num = 0
     for _, data in enumerate(loader):
-        images, boxes, labels = data
+        images, boxes, labels, gt_masks = data
         images = images.to(device)
         boxes = boxes.to(device)
         labels = labels.to(device)
+        gt_masks = gt_masks.to(device)
         num += 1
 
         with torch.no_grad():
-            confidence, locations = net(images)
-            regression_loss, classification_loss = criterion(confidence, locations, labels, boxes)
-            loss = regression_loss + classification_loss
+            confidence, locations, seg_masks = net(images)
+            regression_loss, classification_loss, segmentation_loss = criterion(confidence, locations, seg_masks,
+                                                                                labels, boxes,
+                                                                                gt_masks)  # TODO CHANGE BOXES
+            loss = regression_loss + classification_loss + segmentation_loss
 
         running_loss += loss.item()
         running_regression_loss += regression_loss.item()
         running_classification_loss += classification_loss.item()
-    return running_loss / num, running_regression_loss / num, running_classification_loss / num
+        running_segmentation_loss += segmentation_loss.item()
+    return running_loss / num, running_regression_loss / num, running_classification_loss / num, running_segmentation_loss / num
 
 
 if __name__ == '__main__':
@@ -188,6 +199,9 @@ if __name__ == '__main__':
     elif args.net == 'mb2-ssd-lite':
         create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
         config = mobilenetv1_ssd_config
+    elif args.net == "jnet-ssd-lite":
+        create_net = lambda num: create_imJnet_ssd_lite(num, width_mult=args.mb2_width_mult)
+
     else:
         logging.fatal("The net type is wrong.")
         parser.print_help(sys.stderr)
@@ -323,12 +337,13 @@ if __name__ == '__main__':
               device=DEVICE, debug_steps=args.debug_steps, epoch=epoch)
         
         if epoch % args.validation_epochs == 0 or epoch == args.num_epochs - 1:
-            val_loss, val_regression_loss, val_classification_loss = test(val_loader, net, criterion, DEVICE)
+            val_loss, val_regression_loss, val_classification_loss, val_segmentation_loss = test(val_loader, net, criterion, DEVICE)
             logging.info(
                 f"Epoch: {epoch}, " +
                 f"Validation Loss: {val_loss:.4f}, " +
                 f"Validation Regression Loss {val_regression_loss:.4f}, " +
-                f"Validation Classification Loss: {val_classification_loss:.4f}"
+                f"Validation Classification Loss: {val_classification_loss:.4f}"+
+                f"Validation Segmentation Loss: {val_segmentation_loss:.4f}"
             )
             model_path = os.path.join(args.checkpoint_folder, f"{args.net}-Epoch-{epoch}-Loss-{val_loss}.pth")
             net.module.save(model_path)

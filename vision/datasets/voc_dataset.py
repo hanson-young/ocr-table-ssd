@@ -36,18 +36,20 @@ class VOCDataset:
             boxes = boxes[is_difficult == 0]
             labels = labels[is_difficult == 0]
         image = self._read_image(image_id)
+        mask = self._read_mask(image_id)
         if self.transform:
-            image, boxes, labels = self.transform(image, boxes, labels)
+            image, boxes, labels, mask = self.transform(image, boxes, labels, mask)
         if self.target_transform:
             boxes, labels = self.target_transform(boxes, labels)
-        return image, boxes, labels
+        return image, boxes, labels, mask
 
     def get_image(self, index):
         image_id = self.ids[index]
         image = self._read_image(image_id)
+        mask = self._read_mask(image_id)
         if self.transform:
-            image, _ = self.transform(image)
-        return image
+            image, mask, _ = self.transform(image, mask)
+        return image, mask
 
     def get_pred_image(self, index):
         image_id = self.ids[index]
@@ -120,5 +122,15 @@ class VOCDataset:
         image = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
 
         return image
+
+    def _read_mask(self, image_id):
+        mask_file = self.root / f"Segmentations/{image_id}.png"
+        # print(image_file)
+        mask = cv2.imread(str(mask_file))
+        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
+        max_edge = max(mask.shape[0],mask.shape[1])
+        mask = cv2.copyMakeBorder(mask, 0, max_edge - mask.shape[0], 0, max_edge - mask.shape[1],cv2.BORDER_CONSTANT)
+
+        return mask
 
 

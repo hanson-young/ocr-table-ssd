@@ -22,7 +22,7 @@ class MultiboxLoss(nn.Module):
         self.priors = priors
         self.priors.to(device)
 
-    def forward(self, confidence, predicted_locations, labels, gt_locations):
+    def forward(self, confidence, predicted_locations, masks, labels, gt_locations, gt_masks):
         """Compute classification loss and smooth l1 loss.
 
         Args:
@@ -43,5 +43,6 @@ class MultiboxLoss(nn.Module):
         predicted_locations = predicted_locations[pos_mask, :].reshape(-1, 4)
         gt_locations = gt_locations[pos_mask, :].reshape(-1, 4)
         smooth_l1_loss = F.smooth_l1_loss(predicted_locations, gt_locations, size_average=False)
+        mse_loss = torch.nn.MSELoss(masks, gt_masks)
         num_pos = gt_locations.size(0)
-        return smooth_l1_loss/num_pos, classification_loss/num_pos
+        return smooth_l1_loss/num_pos, classification_loss/num_pos, mse_loss / num_pos
