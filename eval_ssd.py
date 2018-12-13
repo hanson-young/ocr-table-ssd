@@ -21,7 +21,7 @@ import cv2
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="jnet-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-90-Loss-12.057607242039271.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-90-Loss-0.8146577477455139.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -209,16 +209,16 @@ if __name__ == '__main__':
         seg_mask = seg_mask.cpu().detach().numpy().astype(np.float32)
 
         for i in range(boxes.size(0)):
-            if probs[i] > 0.6:
+            if probs[i] > 0.45:
                 box = boxes[i, :]
                 b = random.randint(0, 255)
                 g = random.randint(0, 255)
                 r = random.randint(0, 255)
-                box[0] = min(box[0] + 10, orig_image.shape[1] - 1)
-                box[1] = min(box[1] + 10, orig_image.shape[0] - 1)
-                box[2] = max(box[2] - 10, box[0])
-                box[3] = max(box[3] - 10, box[1])
-                cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
+                box[0] = min(box[0] + 5, orig_image.shape[1] - 1)
+                box[1] = min(box[1] + 5, orig_image.shape[0] - 1)
+                box[2] = max(box[2] - 5, box[0])
+                box[3] = max(box[3] - 5, box[1])
+                # cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
                 # label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
                 # label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
                 # cv2.putText(orig_image, label,
