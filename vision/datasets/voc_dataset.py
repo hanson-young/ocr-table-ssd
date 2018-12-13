@@ -41,6 +41,13 @@ class VOCDataset:
             image, boxes, labels, mask = self.transform(image, boxes, labels, mask)
         if self.target_transform:
             boxes, labels = self.target_transform(boxes, labels)
+
+        # image = image.cpu().numpy().astype(np.float32).transpose((1, 2, 0))
+        # mask = mask.cpu().numpy().astype(np.float32)
+        # cv2.imshow("image",image)
+        # cv2.imshow("mask", mask)
+        # cv2.waitKey(0)
+
         return image, boxes, labels, mask
 
     def get_image(self, index):

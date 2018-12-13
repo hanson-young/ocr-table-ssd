@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.init as init
 import torch.nn.functional as F
-
+import math
 from torch.utils import model_zoo
 from torchvision import models
 
@@ -82,21 +82,23 @@ class imJNetV3(nn.Module):
         self.final_cat = nn.Conv2d(int(32 * alpha * alpha_up) + 1, int(32 * alpha), 1)
         self.final = nn.Conv2d(int(32 * alpha) * 2, num_classes, 1)
 
-        # self.init_params()
+        self._initialize_weights()
 
-    def init_params(self):
+
+    def _initialize_weights(self):
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
-                init.kaiming_normal(m.weight, mode='fan_out')
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
                 if m.bias is not None:
-                    init.constant(m.bias, 0)
+                    m.bias.data.zero_()
             elif isinstance(m, nn.BatchNorm2d):
-                init.constant(m.weight, 1)
-                init.constant(m.bias, 0)
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
             elif isinstance(m, nn.Linear):
-                init.normal(m.weight, std=0.001)
-                if m.bias is not None:
-                    init.constant(m.bias, 0)
+                n = m.weight.size(1)
+                m.weight.data.normal_(0, 0.01)
+                m.bias.data.zero_()
 
     def forward(self, x):
         b001 =self.b001(x)
@@ -142,13 +144,15 @@ class imJNetV3(nn.Module):
         b19 = F.upsample_bilinear(self.final_cat(b18),scale_factor=2)
         b20 = torch.cat([b19, b002], 1)
         b21 = self.final(b20)
-        return b21
+        return b21, b002
 if __name__=='__main__':
     from torch.autograd import Variable
-
-    x = torch.FloatTensor(16,3,768,768)
+    import numpy as np
+    x = torch.FloatTensor(1,3,768,768)
     x = Variable(x)
     model = imJNetV3(num_classes=1, alpha=0.15)
     print(model)
     y = model(x)
+    seg_mask = torch.squeeze(y)
+    seg_mask = seg_mask.detach().cpu().numpy().astype(np.float32)
     print(y.view(-1,768,768).size())

@@ -11,7 +11,7 @@ GraphPath = namedtuple("GraphPath", ['s0', 'name', 's1'])  #
 
 
 class SSD(nn.Module):
-    def __init__(self, num_classes: int, mask_net: nn.ModuleList, base_net: nn.ModuleList, source_layer_indexes: List[int],
+    def __init__(self, num_classes: int, mask_net, base_net: nn.ModuleList, source_layer_indexes: List[int],
                  extras: nn.ModuleList, classification_headers: nn.ModuleList,
                  regression_headers: nn.ModuleList, is_test=False, config=None, device=None):
         """Compose a SSD model using the given components.
@@ -44,8 +44,14 @@ class SSD(nn.Module):
         locations = []
         start_layer_index = 0
         header_index = 0
-        x_l = self.mask_net(x)
-        seg_mask = F.sigmoid(x_l)
+        #
+        #
+        x_l, x = self.mask_net(x)
+        # sub = getattr(self.mask_net[end_layer_index], 'final')
+        # for layer in sub[:path.s1]:
+        #     x = layer(x)
+
+        seg_mask = torch.sigmoid(x_l)
 
         x = torch.cat([x_l, x],1)
 
@@ -133,6 +139,7 @@ class SSD(nn.Module):
         self.regression_headers.apply(_xavier_init_)
 
     def init(self):
+        self.mask_net.apply(_xavier_init_)
         self.base_net.apply(_xavier_init_)
         self.source_layer_add_ons.apply(_xavier_init_)
         self.extras.apply(_xavier_init_)

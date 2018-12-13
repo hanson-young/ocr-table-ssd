@@ -146,7 +146,7 @@ class Mobile_Unet(nn.Module):
 if __name__=='__main__':
     from torch.autograd import Variable
 
-    x = torch.FloatTensor(16,3,768,768)
+    x = torch.FloatTensor(1,3,768,768)
     x = Variable(x)
     model = Mobile_Unet(num_classes=1, alpha=0.15)
     print(model)

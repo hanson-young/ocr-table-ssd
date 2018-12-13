@@ -1,10 +1,9 @@
 import torch.nn as nn
 import torch.nn.functional as F
 import torch
-
-
+import numpy as np
+import cv2
 from ..utils import box_utils
-
 
 class MultiboxLoss(nn.Module):
     def __init__(self, priors, iou_threshold, neg_pos_ratio,
@@ -43,6 +42,17 @@ class MultiboxLoss(nn.Module):
         predicted_locations = predicted_locations[pos_mask, :].reshape(-1, 4)
         gt_locations = gt_locations[pos_mask, :].reshape(-1, 4)
         smooth_l1_loss = F.smooth_l1_loss(predicted_locations, gt_locations, size_average=False)
-        mse_loss = torch.nn.MSELoss(masks, gt_masks)
+        masks = torch.squeeze(masks)
+        #
+        # for idx in range(masks.size(0)):
+        #     gt_mask = gt_masks[idx]
+        #     seg_mask = masks[idx]
+        #     gt_mask = gt_mask.cpu().numpy().astype(np.float32)
+        #     seg_mask = torch.squeeze(seg_mask)
+        #     seg_mask = seg_mask.cpu().detach().numpy().astype(np.float32)
+        #     cv2.imshow("gt_mask", gt_mask)
+        #     cv2.imshow("seg_mask", seg_mask)
+        #     cv2.waitKey(0)
+        mse_loss = F.mse_loss(masks, gt_masks, size_average=True)
         num_pos = gt_locations.size(0)
-        return smooth_l1_loss/num_pos, classification_loss/num_pos, mse_loss / num_pos
+        return smooth_l1_loss/num_pos, classification_loss/num_pos, mse_loss

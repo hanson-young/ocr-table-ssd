@@ -209,12 +209,12 @@ class RandomBrightness(object):
 
 class ToCV2Image(object):
     def __call__(self, tensor, boxes=None, labels=None, mask = None):
-        return tensor.cpu().numpy().astype(np.float32).transpose((1, 2, 0)), boxes, labels,mask.cpu().numpy().astype(np.float32).transpose((1, 2, 0))
+        return tensor.cpu().numpy().astype(np.float32).transpose((1, 2, 0)), boxes, labels,mask.cpu().numpy().astype(np.float32)
 
 
 class ToTensor(object):
     def __call__(self, cvimage, boxes=None, labels=None, mask = None):
-        return torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1), boxes, labels, torch.from_numpy(mask.astype(np.float32)).permute(2, 0, 1)
+        return torch.from_numpy(cvimage.astype(np.float32)).permute(2, 0, 1), boxes, labels, torch.from_numpy(mask.astype(np.float32))
 
 
 class RandomSampleCrop(object):
@@ -346,7 +346,7 @@ class Expand(object):
             dtype=mask.dtype)
         expand_mask[:, :] = 0
         expand_mask[int(top):int(top + height),
-                     int(left):int(left + width)] = expand_mask
+                     int(left):int(left + width)] = mask
 
         image = expand_image
         mask = expand_mask

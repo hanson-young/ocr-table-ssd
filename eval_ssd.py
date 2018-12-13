@@ -14,12 +14,14 @@ import logging
 import sys
 import random
 from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite, create_mobilenetv2_ssd_lite_predictor
+from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite
+from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite_predictor
 import cv2
 
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
-parser.add_argument('--net', default="mb2-ssd-lite",
-                    help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite or vgg16-ssd.")
-parser.add_argument("--trained_model", default= 'model_log/mb2-ssd-lite-Epoch-540-Loss-1.2274111747741698.pth', type=str)
+parser.add_argument('--net', default="jnet-ssd-lite",
+                    help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-90-Loss-12.057607242039271.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -127,7 +129,7 @@ if __name__ == '__main__':
     class_names = [name.strip() for name in open(args.label_file).readlines()]
 
     if args.dataset_type == "voc":
-        dataset = VOCDataset(args.dataset, is_test=False)
+        dataset = VOCDataset(args.dataset, is_test=True)
     elif args.dataset_type == 'open_images':
         dataset = OpenImagesDataset(args.dataset, dataset_type="test")
 
@@ -142,6 +144,8 @@ if __name__ == '__main__':
         net = create_squeezenet_ssd_lite(len(class_names), is_test=True)
     elif args.net == 'mb2-ssd-lite':
         net = create_mobilenetv2_ssd_lite(len(class_names), width_mult=args.mb2_width_mult, is_test=True)
+    elif args.net == 'jnet-ssd-lite':
+        net = create_imJnet_ssd_lite(len(class_names), width_mult=args.mb2_width_mult, is_test=True)
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
@@ -168,6 +172,9 @@ if __name__ == '__main__':
         predictor = create_squeezenet_ssd_lite_predictor(net,nms_method=args.nms_method, device=DEVICE)
     elif args.net == 'mb2-ssd-lite':
         predictor = create_mobilenetv2_ssd_lite_predictor(net, nms_method=args.nms_method, device=DEVICE)
+    elif args.net == 'jnet-ssd-lite':
+        predictor = create_imJnet_ssd_lite_predictor(net, nms_method=args.nms_method, device=DEVICE)
+
     else:
         logging.fatal("The net type is wrong. It should be one of vgg16-ssd, mb1-ssd and mb1-ssd-lite.")
         parser.print_help(sys.stderr)
@@ -177,10 +184,10 @@ if __name__ == '__main__':
     for i in range(len(dataset)):
         print("process image", i)
         timer.start("Load Image")
-        image = dataset.get_image(i)
+        image, gt_mask = dataset.get_image(i)
         print("Load Image: {:4f} seconds.".format(timer.end("Load Image")))
         timer.start("Predict")
-        boxes, labels, probs = predictor.predict(image)
+        boxes, labels, probs, masks= predictor.predict(image, gt_mask)
         print("Prediction: {:4f} seconds.".format(timer.end("Predict")))
         indexes = torch.ones(labels.size(0), 1, dtype=torch.float32) * i
         results.append(torch.cat([
@@ -197,8 +204,12 @@ if __name__ == '__main__':
         #     box = gt_boxes[i, :]
         #     cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 1)
 
+        seg_mask = masks[0]
+        seg_mask = torch.squeeze(seg_mask)
+        seg_mask = seg_mask.cpu().detach().numpy().astype(np.float32)
+
         for i in range(boxes.size(0)):
-            if probs[i] > 0.45:
+            if probs[i] > 0.6:
                 box = boxes[i, :]
                 b = random.randint(0, 255)
                 g = random.randint(0, 255)
@@ -218,6 +229,7 @@ if __name__ == '__main__':
                 #             2)  # line type
         # orig_image = cv2.resize(orig_image,(512,512))
         cv2.imshow('img',orig_image)
+        cv2.imshow('seg_mask', seg_mask)
         cv2.waitKey(0)
     results = torch.cat(results)
     for class_index, class_name in enumerate(class_names):

@@ -3,7 +3,8 @@ import os
 import logging
 import sys
 import itertools
-
+import numpy as np
+import cv2
 import torch
 from torch.utils.data import DataLoader, ConcatDataset
 from torch.optim.lr_scheduler import CosineAnnealingLR, MultiStepLR
@@ -65,7 +66,7 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
-parser.add_argument('--pretrained_ssd', default="", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-90-Loss-12.057607242039271.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -82,15 +83,15 @@ parser.add_argument('--t_max', default=120, type=float,
                     help='T_max value for Cosine Annealing Scheduler.')
 
 # Train params
-parser.add_argument('--batch_size', default=20, type=int,
+parser.add_argument('--batch_size', default=12, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=200000, type=int,
                     help='the number epochs')
 parser.add_argument('--num_workers', default=4, type=int,
                     help='Number of workers used in dataloading')
-parser.add_argument('--validation_epochs', default=20, type=int,
+parser.add_argument('--validation_epochs', default=5, type=int,
                     help='the number epochs')
-parser.add_argument('--debug_steps', default=500, type=int,
+parser.add_argument('--debug_steps', default=100, type=int,
                     help='Set the debug log output frequency.')
 parser.add_argument('--use_cuda', default=True, type=str2bool,
                     help='Use CUDA to train model')
@@ -125,8 +126,21 @@ def train(loader, net, criterion, optimizer, device, debug_steps=100, epoch=-1):
 
         optimizer.zero_grad()
         confidence, locations, seg_masks = net(images)
+        # for idx in range(images.size(0)):
+        #     image=images[idx]
+        #     gt_mask = gt_masks[idx]
+        #     seg_mask = seg_masks[idx]
+        #     image = image.cpu().numpy().astype(np.float32).transpose((1, 2, 0))
+        #     gt_mask = gt_mask.cpu().numpy().astype(np.float32)
+        #     seg_mask = torch.squeeze(seg_mask)
+        #     seg_mask = seg_mask.cpu().detach().numpy().astype(np.float32)
+        #     cv2.imshow("image",image)
+        #     cv2.imshow("gt_mask", gt_mask)
+        #     cv2.imshow("seg_mask", seg_mask)
+        #     cv2.waitKey(0)
         regression_loss, classification_loss, segmentation_loss = criterion(confidence, locations, seg_masks, labels, boxes, gt_masks)  # TODO CHANGE BOXES
         loss = regression_loss + classification_loss + segmentation_loss
+        # loss = segmentation_loss
         loss.backward()
         optimizer.step()
 
@@ -137,12 +151,13 @@ def train(loader, net, criterion, optimizer, device, debug_steps=100, epoch=-1):
         if i and i % debug_steps == 0:
             avg_loss = running_loss / debug_steps
             avg_reg_loss = running_regression_loss / debug_steps
+            avg_clf_loss = running_classification_loss / debug_steps
             avg_seg_loss = running_segmentation_loss / debug_steps
             logging.info(
                 f"Epoch: {epoch}, Step: {i}, " +
                 f"Average Loss: {avg_loss:.4f}, " +
                 f"Average Regression Loss {avg_reg_loss:.4f}, " +
-                f"Average Classification Loss: {avg_clf_loss:.4f}" +
+                f"Average Classification Loss: {avg_clf_loss:.4f}, " +
                 f"Average Segmentation Loss: {avg_seg_loss:.4f}"
             )
             running_loss = 0.0
@@ -200,6 +215,7 @@ if __name__ == '__main__':
         create_net = lambda num: create_mobilenetv2_ssd_lite(num, width_mult=args.mb2_width_mult)
         config = mobilenetv1_ssd_config
     elif args.net == "jnet-ssd-lite":
+        config = mobilenetv1_ssd_config
         create_net = lambda num: create_imJnet_ssd_lite(num, width_mult=args.mb2_width_mult)
 
     else:
@@ -255,6 +271,9 @@ if __name__ == '__main__':
                             shuffle=False)
     logging.info("Build network.")
     net = create_net(num_classes)
+    print(net)
+    for param in net.parameters():
+        param.requires_grad = True
     min_loss = -10000.0
     last_epoch = -1
 
@@ -305,34 +324,35 @@ if __name__ == '__main__':
         logging.info(f"Init from pretrained ssd {args.pretrained_ssd}")
         net.init_from_pretrained_ssd(args.pretrained_ssd)
     logging.info(f'Took {timer.end("Load Model"):.2f} seconds to load the model.')
-
+    freeze_net_layers(net.mask_net)
     # net.to(DEVICE)
     # net = net.cuda()
     net = torch.nn.DataParallel(net, device_ids=device_ids).to(DEVICE)
     criterion = MultiboxLoss(config.priors, iou_threshold=0.5, neg_pos_ratio=3,
                              center_variance=0.1, size_variance=0.2, device=DEVICE)
-    optimizer = torch.optim.SGD(params, lr=args.lr, momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    # optimizer = torch.optim.SGD(net.parameters(), lr=args.lr, momentum=args.momentum,
+    #                             weight_decay=args.weight_decay)
+    optimizer = torch.optim.RMSprop(net.parameters(), lr=1e-3, alpha=0.9)
     # optimizer = torch.nn.DataParallel(optimizer, device_ids=device_ids)
     logging.info(f"Learning rate: {args.lr}, Base net learning rate: {base_net_lr}, "
                  + f"Extra Layers learning rate: {extra_layers_lr}.")
 
-    if args.scheduler == 'multi-step':
-        logging.info("Uses MultiStepLR scheduler.")
-        milestones = [int(v.strip()) for v in args.milestones.split(",")]
-        scheduler = MultiStepLR(optimizer, milestones=milestones,
-                                                     gamma=0.1, last_epoch=last_epoch)
-    elif args.scheduler == 'cosine':
-        logging.info("Uses CosineAnnealingLR scheduler.")
-        scheduler = CosineAnnealingLR(optimizer, args.t_max, last_epoch=last_epoch)
-    else:
-        logging.fatal(f"Unsupported Scheduler: {args.scheduler}.")
-        parser.print_help(sys.stderr)
-        sys.exit(1)
+    # if args.scheduler == 'multi-step':
+    #     logging.info("Uses MultiStepLR scheduler.")
+    #     milestones = [int(v.strip()) for v in args.milestones.split(",")]
+    #     scheduler = MultiStepLR(optimizer, milestones=milestones,
+    #                                                  gamma=0.1, last_epoch=last_epoch)
+    # elif args.scheduler == 'cosine':
+    #     logging.info("Uses CosineAnnealingLR scheduler.")
+    #     scheduler = CosineAnnealingLR(optimizer, args.t_max, last_epoch=last_epoch)
+    # else:
+    #     logging.fatal(f"Unsupported Scheduler: {args.scheduler}.")
+    #     parser.print_help(sys.stderr)
+    #     sys.exit(1)
 
     logging.info(f"Start training from epoch {last_epoch + 1}.")
     for epoch in range(last_epoch + 1, args.num_epochs):
-        scheduler.step()
+        # scheduler.step()
         train(train_loader, net, criterion, optimizer,
               device=DEVICE, debug_steps=args.debug_steps, epoch=epoch)
         
@@ -342,7 +362,7 @@ if __name__ == '__main__':
                 f"Epoch: {epoch}, " +
                 f"Validation Loss: {val_loss:.4f}, " +
                 f"Validation Regression Loss {val_regression_loss:.4f}, " +
-                f"Validation Classification Loss: {val_classification_loss:.4f}"+
+                f"Validation Classification Loss: {val_classification_loss:.4f}, "+
                 f"Validation Segmentation Loss: {val_segmentation_loss:.4f}"
             )
             model_path = os.path.join(args.checkpoint_folder, f"{args.net}-Epoch-{epoch}-Loss-{val_loss}.pth")
