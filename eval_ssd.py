@@ -17,11 +17,12 @@ from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite, create
 from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite
 from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite_predictor
 import cv2
+import string
 
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="jnet-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-90-Loss-0.8146577477455139.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-640-Loss-0.705036631652287.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -218,7 +219,7 @@ if __name__ == '__main__':
                 box[1] = min(box[1] + 5, orig_image.shape[0] - 1)
                 box[2] = max(box[2] - 5, box[0])
                 box[3] = max(box[3] - 5, box[1])
-                # cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
+                cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
                 # label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
                 # label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
                 # cv2.putText(orig_image, label,
@@ -228,6 +229,14 @@ if __name__ == '__main__':
                 #             (255, 0, 255),
                 #             2)  # line type
         # orig_image = cv2.resize(orig_image,(512,512))
+        ran_str = ''.join(random.sample(string.ascii_letters + string.digits, 20))
+        ocr_cropped_bbox = 'eval_results/bbox/'+ ran_str + ".png"
+        ocr_cropped_heatmap = 'eval_results/heatmap/' + ran_str + ".png"
+        seg_mask = (seg_mask * 255).astype(np.uint8)
+        seg_mask = cv2.applyColorMap(seg_mask, cv2.COLORMAP_JET)
+        cv2.imwrite(ocr_cropped_bbox, orig_image)
+
+        cv2.imwrite(ocr_cropped_heatmap, seg_mask)
         cv2.imshow('img',orig_image)
         cv2.imshow('seg_mask', seg_mask)
         cv2.waitKey(0)

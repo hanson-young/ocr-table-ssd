@@ -66,7 +66,7 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
-parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-90-Loss-12.057607242039271.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-640-Loss-0.705036631652287.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -83,7 +83,7 @@ parser.add_argument('--t_max', default=120, type=float,
                     help='T_max value for Cosine Annealing Scheduler.')
 
 # Train params
-parser.add_argument('--batch_size', default=12, type=int,
+parser.add_argument('--batch_size', default=16, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=200000, type=int,
                     help='the number epochs')
@@ -324,7 +324,7 @@ if __name__ == '__main__':
         logging.info(f"Init from pretrained ssd {args.pretrained_ssd}")
         net.init_from_pretrained_ssd(args.pretrained_ssd)
     logging.info(f'Took {timer.end("Load Model"):.2f} seconds to load the model.')
-    freeze_net_layers(net.mask_net)
+    # freeze_net_layers(net.mask_net)
     # net.to(DEVICE)
     # net = net.cuda()
     net = torch.nn.DataParallel(net, device_ids=device_ids).to(DEVICE)
