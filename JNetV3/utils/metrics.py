@@ -40,7 +40,6 @@ def metrics_pred(pred_b , images, masks):
 
         union_area = np.logical_or(pred_b[i], masks[i]).sum()
 
-
         im_color = cv2.applyColorMap((pred_b[i] * 250).astype(np.uint8), cv2.COLORMAP_JET)
         # cv2.imshow("pred",im_color)
         # cv2.imshow("mask", masks[i])
