@@ -10,6 +10,8 @@ from numpy import random
 
 
 def intersect(box_a, box_b):
+
+
     max_xy = np.minimum(box_a[:, 2:], box_b[2:])
     min_xy = np.maximum(box_a[:, :2], box_b[:2])
     inter = np.clip((max_xy - min_xy), a_min=0, a_max=np.inf)
@@ -51,6 +53,7 @@ class Compose(object):
         self.transforms = transforms
 
     def __call__(self, img, boxes=None, labels=None, mask = None):
+
         for t in self.transforms:
             img, boxes, labels, mask = t(img, boxes, labels, mask)
         return img, boxes, labels, mask
@@ -245,6 +248,7 @@ class RandomSampleCrop(object):
 
     def __call__(self, image, boxes=None, labels=None, mask = None):
         height, width, _ = image.shape
+
         while True:
             # randomly choose a mode
             mode = random.choice(self.sample_options)
@@ -352,6 +356,8 @@ class Expand(object):
         mask = expand_mask
 
         boxes = boxes.copy()
+        # print(boxes, (int(left), int(top)))
+
         boxes[:, :2] += (int(left), int(top))
         boxes[:, 2:] += (int(left), int(top))
 

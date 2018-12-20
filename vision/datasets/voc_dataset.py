@@ -25,7 +25,7 @@ class VOCDataset:
         self.keep_difficult = keep_difficult
 
         self.class_names = ('BACKGROUND',
-            '1111'
+            'qqq'
         )
         self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
 
@@ -35,8 +35,12 @@ class VOCDataset:
         if not self.keep_difficult:
             boxes = boxes[is_difficult == 0]
             labels = labels[is_difficult == 0]
+        # print(image_id)
+        # print('===', boxes.shape)
         image = self._read_image(image_id)
         mask = self._read_mask(image_id)
+
+
         if self.transform:
             image, boxes, labels, mask = self.transform(image, boxes, labels, mask)
         if self.target_transform:
@@ -122,7 +126,7 @@ class VOCDataset:
 
     def _read_image(self, image_id):
         image_file = self.root / f"Images/{image_id}.png"
-        # print(image_file)
+
         image = cv2.imread(str(image_file))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         max_edge = max(image.shape[0],image.shape[1])

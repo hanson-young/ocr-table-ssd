@@ -24,7 +24,7 @@ class OcrDataset:
         self.ids = OcrDataset._read_image_ids(image_sets_file)
 
         self.class_names = ('BACKGROUND',
-            '1111'
+            'qqq'
         )
         self.class_dict = {class_name: i for i, class_name in enumerate(self.class_names)}
 
@@ -62,38 +62,39 @@ class OcrDataset:
         is_difficult = []
         for object in objects:
             class_name = object.find('name').text.lower().strip()
-            polygon = object.find('polygon')
-            # VOC dataset format follows Matlab, in which indexes start from 0
+            if class_name == 'qqq':
+                polygon = object.find('polygon')
+                # VOC dataset format follows Matlab, in which indexes start from 0
 
-            point0 = polygon.find('point0').text.split(',')
-            point1 = polygon.find('point1').text.split(',')
-            point2 = polygon.find('point2').text.split(',')
-            point3 = polygon.find('point3').text.split(',')
+                point0 = polygon.find('point0').text.split(',')
+                point1 = polygon.find('point1').text.split(',')
+                point2 = polygon.find('point2').text.split(',')
+                point3 = polygon.find('point3').text.split(',')
 
-            point0[0] = int(point0[0])
-            point0[1] = int(point0[1])
-            point1[0] = int(point1[0])
-            point1[1] = int(point1[1])
-            point2[0] = int(point2[0])
-            point2[1] = int(point2[1])
-            point3[0] = int(point3[0])
-            point3[1] = int(point3[1])
+                point0[0] = int(point0[0])
+                point0[1] = int(point0[1])
+                point1[0] = int(point1[0])
+                point1[1] = int(point1[1])
+                point2[0] = int(point2[0])
+                point2[1] = int(point2[1])
+                point3[0] = int(point3[0])
+                point3[1] = int(point3[1])
 
-            polyes.append([point0, point1, point2, point3])
+                polyes.append([point0, point1, point2, point3])
 
-            xmin = min([int(point0[0]),int(point1[0]),int(point2[0]),int(point3[0])])
-            ymin = min([int(point0[1]),int(point1[1]),int(point2[1]),int(point3[1])])
-            xmax =max([int(point0[0]),int(point1[0]),int(point2[0]),int(point3[0])])
-            ymax =max([int(point0[1]),int(point1[1]),int(point2[1]),int(point3[1])])
+                xmin = min([int(point0[0]),int(point1[0]),int(point2[0]),int(point3[0])])
+                ymin = min([int(point0[1]),int(point1[1]),int(point2[1]),int(point3[1])])
+                xmax =max([int(point0[0]),int(point1[0]),int(point2[0]),int(point3[0])])
+                ymax =max([int(point0[1]),int(point1[1]),int(point2[1]),int(point3[1])])
 
-            xmin = max(0, xmin - 5)
-            ymin = max(0, ymin - 5)
-            xmax = min(w, xmax + 5)
-            ymax = min(h, ymax + 5)
-            boxes.append([float(xmin), float(ymin), float(xmax), float(ymax)])
-            labels.append(self.class_dict[class_name])
-            is_difficult_str = object.find('difficult').text
-            is_difficult.append(int(is_difficult_str) if is_difficult_str else 0)
+                xmin = max(0, xmin - 5)
+                ymin = max(0, ymin - 5)
+                xmax = min(w, xmax + 5)
+                ymax = min(h, ymax + 5)
+                boxes.append([float(xmin), float(ymin), float(xmax), float(ymax)])
+                labels.append(self.class_dict[class_name])
+                is_difficult_str = object.find('difficult').text
+                is_difficult.append(int(is_difficult_str) if is_difficult_str else 0)
 
         return (np.array(boxes, dtype=np.float32),
                 np.array(polyes, dtype=np.int32),
@@ -157,13 +158,13 @@ class VOCAnnotation(object):
         tree.write(saveFileName, pretty_print=True)
 
 if __name__ == "__main__":
-    ocr_cropped_root = '/media/handsome/backupdata/hanson/orc_cropped'
-    is_test = True
+    ocr_cropped_root = '/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped'
+    is_test = False
     if is_test:
         txt_file = ocr_cropped_root + "/test.txt"
     else:
         txt_file = ocr_cropped_root + "/trainval.txt"
-    dataset = OcrDataset("/media/handsome/backupdata/hanson/ocr_table_dataset", is_test=is_test)
+    dataset = OcrDataset("/media/handsome/backupdata/hanson/ocr_table_dataset_v2", is_test=is_test)
 
     print(len(dataset.ids))
     area_list = []
@@ -224,11 +225,13 @@ if __name__ == "__main__":
             ocr_cropped_xml = os.path.join(ocr_cropped_root, 'Annotations', '01', ran_str + ".xml")
             ocr_cropped_img = os.path.join(ocr_cropped_root, 'Images', '01', ran_str + ".png")
             ocr_cropped_mask = os.path.join(ocr_cropped_root, 'Segmentations', '01', ran_str + ".png")
+            if len(boxes) == 0:
+                continue
             voc = VOCAnnotation(ran_str + ".png", area.shape[1], area.shape[0])
 
             for box in boxes:
                 # cv2.rectangle(area, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 1)
-                voc.addBoundingBox(box[0], box[1], box[2], box[3], "1111")
+                voc.addBoundingBox(box[0], box[1], box[2], box[3], "qqq")
 
             voc.save(ocr_cropped_xml)
             cv2.imwrite(ocr_cropped_img, area)

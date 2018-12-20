@@ -31,8 +31,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
 
-parser.add_argument('--datasets', nargs='+', default="/media/handsome/backupdata/hanson/orc_cropped", help='Dataset directory path')
-parser.add_argument('--validation_dataset', default="/media/handsome/backupdata/hanson/orc_cropped", help='Dataset directory path')
+parser.add_argument('--datasets', nargs='+', default="/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped", help='Dataset directory path')
+parser.add_argument('--validation_dataset', default="/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped", help='Dataset directory path')
 parser.add_argument('--balance_data', default=False, action='store_true',
                     help="Balance training data by down-sampling more frequent labels.")
 
@@ -66,7 +66,7 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
-parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-640-Loss-0.705036631652287.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -83,13 +83,13 @@ parser.add_argument('--t_max', default=120, type=float,
                     help='T_max value for Cosine Annealing Scheduler.')
 
 # Train params
-parser.add_argument('--batch_size', default=16, type=int,
+parser.add_argument('--batch_size', default=10, type=int,
                     help='Batch size for training')
 parser.add_argument('--num_epochs', default=200000, type=int,
                     help='the number epochs')
 parser.add_argument('--num_workers', default=4, type=int,
                     help='Number of workers used in dataloading')
-parser.add_argument('--validation_epochs', default=5, type=int,
+parser.add_argument('--validation_epochs', default=10, type=int,
                     help='the number epochs')
 parser.add_argument('--debug_steps', default=100, type=int,
                     help='Set the debug log output frequency.')
@@ -186,8 +186,8 @@ def test(loader, net, criterion, device):
             regression_loss, classification_loss, segmentation_loss = criterion(confidence, locations, seg_masks,
                                                                                 labels, boxes,
                                                                                 gt_masks)  # TODO CHANGE BOXES
-            loss = regression_loss + classification_loss + segmentation_loss
-
+            loss = regression_loss + classification_loss
+            # loss = regression_loss + classification_loss + segmentation_loss
         running_loss += loss.item()
         running_regression_loss += regression_loss.item()
         running_classification_loss += classification_loss.item()
@@ -324,6 +324,9 @@ if __name__ == '__main__':
         logging.info(f"Init from pretrained ssd {args.pretrained_ssd}")
         net.init_from_pretrained_ssd(args.pretrained_ssd)
     logging.info(f'Took {timer.end("Load Model"):.2f} seconds to load the model.')
+
+
+    #========================================================================================================
     # freeze_net_layers(net.mask_net)
     # net.to(DEVICE)
     # net = net.cuda()

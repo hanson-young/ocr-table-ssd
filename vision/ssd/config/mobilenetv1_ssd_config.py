@@ -49,4 +49,4 @@ specs = [
 
 
 priors = generate_ssd_priors(specs, image_size)
-print(priors)
+# print(priors)

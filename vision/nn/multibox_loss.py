@@ -43,6 +43,7 @@ class MultiboxLoss(nn.Module):
         gt_locations = gt_locations[pos_mask, :].reshape(-1, 4)
         smooth_l1_loss = F.smooth_l1_loss(predicted_locations, gt_locations, size_average=False)
         masks = torch.squeeze(masks)
+        gt_masks = torch.squeeze(gt_masks)
         #
         # for idx in range(masks.size(0)):
         #     gt_mask = gt_masks[idx]

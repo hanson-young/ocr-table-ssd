@@ -28,5 +28,5 @@ def compute_voc2007_average_precision(precision, recall):
             p = 0
         else:
             p = np.max(precision[recall >= t])
-        ap = ap + p / 10.
+        ap = ap + p / 11.
     return ap

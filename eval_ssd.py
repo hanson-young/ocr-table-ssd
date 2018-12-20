@@ -22,11 +22,12 @@ import string
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="jnet-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-640-Loss-0.705036631652287.pth', type=str)
+# model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
-parser.add_argument("--dataset", default='/media/handsome/backupdata/hanson/orc_cropped', type=str, help="The root directory of the VOC dataset or Open Images dataset.")
+parser.add_argument("--dataset", default='/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped', type=str, help="The root directory of the VOC dataset or Open Images dataset.")
 parser.add_argument("--label_file", default='model_log/voc-model-labels.txt' ,type=str, help="The label file path.")
 parser.add_argument("--use_cuda", type=str2bool, default=True)
 parser.add_argument("--use_2007_metric", type=str2bool, default=True)
@@ -117,6 +118,8 @@ def compute_average_precision_per_class(num_true_cases, gt_boxes, difficult_case
     false_positive = false_positive.cumsum()
     precision = true_positive / (true_positive + false_positive)
     recall = true_positive / num_true_cases
+    print('precision',precision)
+    print('recall' , recall)
     if use_2007_metric:
         return measurements.compute_voc2007_average_precision(precision, recall)
     else:
@@ -210,7 +213,7 @@ if __name__ == '__main__':
         seg_mask = seg_mask.cpu().detach().numpy().astype(np.float32)
 
         for i in range(boxes.size(0)):
-            if probs[i] > 0.45:
+            if probs[i] > 0.4:
                 box = boxes[i, :]
                 b = random.randint(0, 255)
                 g = random.randint(0, 255)
@@ -234,12 +237,12 @@ if __name__ == '__main__':
         ocr_cropped_heatmap = 'eval_results/heatmap/' + ran_str + ".png"
         seg_mask = (seg_mask * 255).astype(np.uint8)
         seg_mask = cv2.applyColorMap(seg_mask, cv2.COLORMAP_JET)
-        cv2.imwrite(ocr_cropped_bbox, orig_image)
-
-        cv2.imwrite(ocr_cropped_heatmap, seg_mask)
-        cv2.imshow('img',orig_image)
-        cv2.imshow('seg_mask', seg_mask)
-        cv2.waitKey(0)
+        # cv2.imwrite(ocr_cropped_bbox, orig_image)
+        #
+        # cv2.imwrite(ocr_cropped_heatmap, seg_mask)
+        # cv2.imshow('img',orig_image)
+        # cv2.imshow('seg_mask', seg_mask)
+        # cv2.waitKey(0)
     results = torch.cat(results)
     for class_index, class_name in enumerate(class_names):
         if class_index == 0: continue  # ignore background
@@ -249,10 +252,11 @@ if __name__ == '__main__':
             for i in range(sub.size(0)):
                 prob_box = sub[i, 2:].numpy()
                 image_id = dataset.ids[int(sub[i, 0])]
-                print(
-                    image_id + " " + " ".join([str(v) for v in prob_box]),
-                    file=f
-                )
+                if prob_box[0] > 0.45:
+                    print(
+                        image_id + " " + " ".join([str(v) for v in prob_box]),
+                        file=f
+                    )
     aps = []
     print("\n\nAverage Precision Per-class:")
     for class_index, class_name in enumerate(class_names):
