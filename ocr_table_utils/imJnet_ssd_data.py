@@ -157,6 +157,21 @@ class VOCAnnotation(object):
         tree = etree.ElementTree(self._annotation)
         tree.write(saveFileName, pretty_print=True)
 
+
+def sort_points(pts):
+    x_sorted = pts[np.argsort(pts[:, 0]), :]
+
+    left_most = x_sorted[:2, :]
+    right_most = x_sorted[2:, :]
+
+    left_most = left_most[np.argsort(left_most[:, 1]), :]
+    [tl, bl] = left_most
+
+    right_most = right_most[np.argsort(right_most[:, 1]), :]
+    [tr, br] = right_most
+
+    return np.array([tl, tr, br, bl], dtype=np.int32)
+
 if __name__ == "__main__":
     ocr_cropped_root = '/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped'
     is_test = False
@@ -172,6 +187,25 @@ if __name__ == "__main__":
         image_id, annotation = dataset.get_annotation(idx)
         image = dataset._read_image(image_id)
         gt_boxes, polyes, classes, is_difficult = annotation
+
+        print(polyes.shape)
+        thetas = []
+        for num in range(polyes.shape[0]):
+            polyes[num, :, :] = exterior = sort_points(polyes[num,:,:])
+            # lines.append([polyes[num, 0, :],polyes[num, 1, :]])
+            # lines.append([polyes[num, 3, :], polyes[num, 2, :]])
+            dx = polyes[num, 0, 0] - polyes[num, 1, 0]
+            dy = polyes[num, 0, 1] - polyes[num, 1, 1]
+            theta = np.arctan2(np.array([dy]), np.array([dx])) * 180 / np.pi
+            thetas.append(180 + theta if theta < 0 else theta - 180)
+
+            dx = polyes[num, 3, 0] - polyes[num, 2, 0]
+            dy = polyes[num, 3, 1] - polyes[num, 2, 1]
+            theta = np.arctan2(np.array([dy]), np.array([dx])) * 180 / np.pi
+            thetas.append(180 + theta if theta < 0 else theta - 180)
+
+        thetas = np.array(thetas,dtype=np.float32)
+        print(thetas.mean())
         mask = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) * 0
         total_gt_mask = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) * 0
         cv2.polylines(total_gt_mask, polyes, 1, 255, 2)
@@ -182,7 +216,6 @@ if __name__ == "__main__":
             mask[box[1]: box[3],box[0]: box[2]] = mask[box[1]: box[3],box[0]: box[2]] * 0 + 1
 
         con_img, contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-
 
         for jdx in range(0, len(contours)):
             x, y, w, h = cv2.boundingRect(contours[jdx])
@@ -210,38 +243,42 @@ if __name__ == "__main__":
             for jdx in range(gt_boxes.shape[0]):
                 box = gt_boxes[jdx, :].astype(np.int32)
                 if box[0] >= x and box[2] <= x + w and box[1] >= y and box[3] <= y + h:
-                    area_box.append([box[0] - x + 1, box[1] - y + 1, box[2] - x - 1, box[3] - y - 1])
+                    box[0] = box[0] - x + 1
+                    box[1] = box[1] - y + 1
+                    box[2] = box[2] - x - 1
+                    box[3] = box[3] - y - 1
+                    area_box.append([box[0], box[1], box[2], box[3]])
+                    cv2.rectangle(area, (box[0], box[1]), (box[2], box[3]), (153, 153, 0), 1)
             area_list.append([area_box, area, mask_area])
 
-            # cv2.rectangle(con_img, (x, y), (x + w, y + h), (153, 153, 0), 5)
 
-    with open(txt_file,'w') as f:
-        for area_ in area_list:
-
-            boxes = area_[0]
-            area = area_[1]
-            mask_area = area_[2]
-            ran_str = ''.join(random.sample(string.ascii_letters + string.digits, 20))
-            ocr_cropped_xml = os.path.join(ocr_cropped_root, 'Annotations', '01', ran_str + ".xml")
-            ocr_cropped_img = os.path.join(ocr_cropped_root, 'Images', '01', ran_str + ".png")
-            ocr_cropped_mask = os.path.join(ocr_cropped_root, 'Segmentations', '01', ran_str + ".png")
-            if len(boxes) == 0:
-                continue
-            voc = VOCAnnotation(ran_str + ".png", area.shape[1], area.shape[0])
-
-            for box in boxes:
-                # cv2.rectangle(area, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 1)
-                voc.addBoundingBox(box[0], box[1], box[2], box[3], "qqq")
-
-            voc.save(ocr_cropped_xml)
-            cv2.imwrite(ocr_cropped_img, area)
-            cv2.imwrite(ocr_cropped_mask, mask_area)
-            f.write('01/'+ ran_str + '\n')
-            cv2.imshow("area", area)
+            cv2.imshow("area",area)
             cv2.imshow("mask_area", mask_area)
-            cv2.waitKey(10)
 
-            # cv2.imshow("area",area)
-            # cv2.imshow("mask_area", mask_area)
-            #
-            # cv2.waitKey(0)
+            cv2.waitKey(0)
+    # with open(txt_file,'w') as f:
+    #     for area_ in area_list:
+    #
+    #         boxes = area_[0]
+    #         area = area_[1]
+    #         mask_area = area_[2]
+    #         ran_str = ''.join(random.sample(string.ascii_letters + string.digits, 20))
+    #         ocr_cropped_xml = os.path.join(ocr_cropped_root, 'Annotations', '01', ran_str + ".xml")
+    #         ocr_cropped_img = os.path.join(ocr_cropped_root, 'Images', '01', ran_str + ".png")
+    #         ocr_cropped_mask = os.path.join(ocr_cropped_root, 'Segmentations', '01', ran_str + ".png")
+    #         if len(boxes) == 0:
+    #             continue
+    #         voc = VOCAnnotation(ran_str + ".png", area.shape[1], area.shape[0])
+    #
+    #         for box in boxes:
+    #             # cv2.rectangle(area, (box[0], box[1]), (box[2], box[3]), (0, 0, 255), 1)
+    #             voc.addBoundingBox(box[0], box[1], box[2], box[3], "qqq")
+    #
+    #         voc.save(ocr_cropped_xml)
+    #         cv2.imwrite(ocr_cropped_img, area)
+    #         cv2.imwrite(ocr_cropped_mask, mask_area)
+    #         f.write('01/'+ ran_str + '\n')
+    #         cv2.imshow("area", area)
+    #         cv2.imshow("mask_area", mask_area)
+    #         cv2.waitKey(0)
+

@@ -18,12 +18,12 @@ from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite
 from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite_predictor
 import cv2
 import string
-
+import imutils
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="jnet-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
 # model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-220-Loss-0.7154099260057721.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -38,7 +38,7 @@ parser.add_argument('--mb2_width_mult', default=1.0, type=float,
                     help='Width Multiplifier for MobilenetV2')
 args = parser.parse_args()
 DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
-
+# DEVICE = torch.device("cpu")
 
 def group_annotation_by_class(dataset):
     true_case_stat = {}
@@ -125,6 +125,44 @@ def compute_average_precision_per_class(num_true_cases, gt_boxes, difficult_case
     else:
         return measurements.compute_average_precision(precision, recall)
 
+
+def rotate_bound(image, angle):
+    """from imutils module!"""
+    # grab the dimensions of the image and then determine the
+    # center
+    (h, w) = image.shape[:2]
+    (cX, cY) = (w / 2, h / 2)
+
+    # grab the rotation matrix (applying the negative of the
+    # angle to rotate clockwise), then grab the sine and cosine
+    # (i.e., the rotation components of the matrix)
+    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+    cos = np.abs(M[0, 0])
+    sin = np.abs(M[0, 1])
+
+    # compute the new bounding dimensions of the image
+    nW = int((h * sin) + (w * cos))
+    nH = int((h * cos) + (w * sin))
+
+    # adjust the rotation matrix to take into account translation
+    M[0, 2] += (nW / 2) - cX
+    M[1, 2] += (nH / 2) - cY
+
+    # perform the actual rotation and return the image
+    return cv2.warpAffine(image, M, (nW, nH))
+
+
+def reverse_rotate(image, ori_shape, angle):
+    """get reverse transform matrix!"""
+    (h, w) = image.shape[:2]
+    (cX, cY) = (w / 2., h / 2.)
+
+    M = cv2.getRotationMatrix2D((cX, cY), -angle, 1.0)
+
+    M[0, 2] += ori_shape[1] / 2 - cX
+    M[1, 2] += ori_shape[0] / 2 - cY
+
+    return M
 
 if __name__ == '__main__':
     eval_path = pathlib.Path(args.eval_dir)
@@ -222,7 +260,7 @@ if __name__ == '__main__':
                 box[1] = min(box[1] + 5, orig_image.shape[0] - 1)
                 box[2] = max(box[2] - 5, box[0])
                 box[3] = max(box[3] - 5, box[1])
-                cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
+                # cv2.rectangle(orig_image, (box[0], box[1]), (box[2], box[3]), (b, g, r), 2)
                 # label = f"""{voc_dataset.class_names[labels[i]]}: {probs[i]:.2f}"""
                 # label = f"{class_names[labels[i]]}: {probs[i]:.2f}"
                 # cv2.putText(orig_image, label,
@@ -235,14 +273,98 @@ if __name__ == '__main__':
         ran_str = ''.join(random.sample(string.ascii_letters + string.digits, 20))
         ocr_cropped_bbox = 'eval_results/bbox/'+ ran_str + ".png"
         ocr_cropped_heatmap = 'eval_results/heatmap/' + ran_str + ".png"
-        seg_mask = (seg_mask * 255).astype(np.uint8)
-        seg_mask = cv2.applyColorMap(seg_mask, cv2.COLORMAP_JET)
+        thresh_mask = (seg_mask * 255).astype(np.uint8)
+        thresh_mask[thresh_mask > 127] = 255
+        thresh_mask[thresh_mask <= 127] = 0
+        thresh_mask = cv2.resize(thresh_mask,(gt_mask.shape[1],gt_mask.shape[0]))
+
+        horizon_mask = cv2.Sobel(thresh_mask, cv2.CV_8UC1, 0, 1, ksize=3)
+        vertical_mask = cv2.Sobel(thresh_mask, cv2.CV_8UC1, 1, 0, ksize=3)
+        horizon_lines = cv2.HoughLinesP(horizon_mask, 1, np.pi / 180, threshold=40, minLineLength=10, maxLineGap=10)
+        vertical_lines = cv2.HoughLinesP(vertical_mask, 1, np.pi / 180, threshold=40, minLineLength=10, maxLineGap=10)
+        draw_img = cv2.cvtColor(thresh_mask.copy() * 0,cv2.COLOR_GRAY2BGR)
+        horizon_angles = []
+        rotate_angle = 0
+        if horizon_lines is not None:
+            for l in horizon_lines:
+
+                dx = l[0][0] - l[0][2]
+                dy = l[0][1] - l[0][3]
+
+                theta = np.arctan2(np.array([dy]), np.array([dx]))
+                if theta < 0:
+                    theta_tmp = np.pi + theta
+                else:
+                    theta_tmp = theta
+                if (4.5 / 18 * np.pi < theta_tmp < 13.5 / 18 * np.pi):
+                    continue
+                p1 = np.array([l[0][0], l[0][1]])
+                p2 = np.array([l[0][2], l[0][3]])
+                angle = theta * 180 / np.pi
+                horizon_angles.append(180 + angle if angle < 0 else angle - 180)
+
+                cv2.line(draw_img, (p1[0], p1[1]), (p2[0], p2[1]), (255, 0, 0), 1)
+            if len(horizon_angles) > 0:
+                rotate_angle = np.array(horizon_angles, dtype=np.float32).mean()
+
+        rotate_image = rotate_bound(orig_image,-rotate_angle)
+
+        if vertical_lines is not None:
+            for l in vertical_lines:
+
+                dx = l[0][0] - l[0][2]
+                dy = l[0][1] - l[0][3]
+
+                theta = np.arctan2(np.array([dy]), np.array([dx]))
+                if theta < 0:
+                    theta = np.pi + theta
+                if (theta <= 4.5 / 18 * np.pi or 13.5 / 18 * np.pi < theta):
+                    continue
+                p1 = np.array([l[0][0], l[0][1]])
+                p2 = np.array([l[0][2], l[0][3]])
+
+                cv2.line(draw_img, (p1[0], p1[1]), (p2[0], p2[1]), (0, 0, 255), 1)
+
+        boxes, labels, probs, masks = predictor.predict(rotate_image, gt_mask)
+
+        indexes = torch.ones(labels.size(0), 1, dtype=torch.float32) * i
+        results.append(torch.cat([
+            indexes.reshape(-1, 1),
+            labels.reshape(-1, 1).float(),
+            probs.reshape(-1, 1),
+            boxes + 1.0  # matlab's indexes start from 1
+        ], dim=1))
+
+        seg_mask = masks[0]
+        seg_mask = torch.squeeze(seg_mask)
+        seg_mask = seg_mask.cpu().detach().numpy().astype(np.float32)
+        Matrix = reverse_rotate(rotate_image, orig_image.shape, rotate_angle)
+        for i in range(boxes.size(0)):
+            if probs[i] > 0.4:
+                box = boxes[i, :]
+                b = random.randint(0, 255)
+                g = random.randint(0, 255)
+                r = random.randint(0, 255)
+                x1 = min(box[0] + 5, orig_image.shape[1] - 1)
+                y1 = min(box[1] + 5, orig_image.shape[0] - 1)
+                x2 = max(box[2] - 5, box[0])
+                y2 = max(box[3] - 5, box[1])
+                cv2.rectangle(rotate_image, (x1, y1), (x2, y2), (b, g, r), 2)
+                pts = np.array([[x1, y1, 1], [x2, y1, 1], [x2, y2, 1], [x1, y2, 1]])
+                # print(pts.T.shape, M.shape)
+                dst_ps = np.dot(Matrix, pts.T).T
+                for p in range(dst_ps.shape[0]):
+                    cv2.circle(orig_image, (int(dst_ps[p,0]), int(dst_ps[p,1])), 2, (b, g, r), 2)
+
+        # seg_mask = cv2.applyColorMap(seg_mask, cv2.COLORMAP_JET)
         # cv2.imwrite(ocr_cropped_bbox, orig_image)
         #
         # cv2.imwrite(ocr_cropped_heatmap, seg_mask)
-        # cv2.imshow('img',orig_image)
-        # cv2.imshow('seg_mask', seg_mask)
-        # cv2.waitKey(0)
+        cv2.imshow('img',orig_image)
+        cv2.imshow('drawn_img', draw_img)
+        cv2.imshow('seg_mask', seg_mask)
+        cv2.imshow('rotate_image', rotate_image)
+        cv2.waitKey(0)
     results = torch.cat(results)
     for class_index, class_name in enumerate(class_names):
         if class_index == 0: continue  # ignore background

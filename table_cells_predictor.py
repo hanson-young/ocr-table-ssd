@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="jnet-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
 # model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-20-Loss-0.7582516381234834.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
@@ -58,10 +58,11 @@ if __name__ == '__main__':
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         mask = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY) * 0
         max_edge = max(image.shape[0],image.shape[1])
-        detect_area = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
-        gt_mask = cv2.copyMakeBorder(mask, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],
-                                   cv2.BORDER_CONSTANT)
-
+        # detect_area = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
+        # gt_mask = cv2.copyMakeBorder(mask, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],
+        #                            cv2.BORDER_CONSTANT)
+        detect_area = image.copy()
+        gt_mask = mask.copy()
         boxes, labels, probs, masks = predictor.predict(detect_area, gt_mask)
         for i in range(boxes.size(0)):
             if probs[i] > 0.45:

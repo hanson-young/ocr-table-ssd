@@ -66,7 +66,8 @@ parser.add_argument('--extra_layers_lr', default=None, type=float,
 parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
-parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+# model_log/jnet-ssd-lite-Epoch-40-Loss-8.033474040753914.pth
+parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-260-Loss-0.7147320622489566.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -327,7 +328,7 @@ if __name__ == '__main__':
 
 
     #========================================================================================================
-    # freeze_net_layers(net.mask_net)
+    freeze_net_layers(net.mask_net)
     # net.to(DEVICE)
     # net = net.cuda()
     net = torch.nn.DataParallel(net, device_ids=device_ids).to(DEVICE)

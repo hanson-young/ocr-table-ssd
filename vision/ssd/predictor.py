@@ -7,7 +7,7 @@ from ..utils.misc import Timer
 
 class Predictor:
     def __init__(self, net, size, mean=0.0, std=1.0, nms_method=None,
-                 iou_threshold=0.45, filter_threshold=0.01, candidate_size=200, sigma=0.5, device=None):
+                 iou_threshold=0.45, filter_threshold=0.3, candidate_size=200, sigma=0.5, device=None):
         self.net = net
         self.transform = PredictionTransform(size, mean, std)
         self.iou_threshold = iou_threshold
@@ -19,7 +19,7 @@ class Predictor:
         if device:
             self.device = device
         else:
-            self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+            self.device = torch.device("cuda:1" if torch.cuda.is_available() else "cpu")
 
         self.net.to(self.device)
         self.net.eval()
@@ -27,15 +27,20 @@ class Predictor:
         self.timer = Timer()
 
     def predict(self, image, gt_mask, top_k=-1, prob_threshold=None):
+
         cpu_device = torch.device("cpu")
         height, width, _ = image.shape
+        self.timer.start()
         image, gt_mask = self.transform(image,None,None,gt_mask)
         images = image.unsqueeze(0)
+
         images = images.to(self.device)
+        print("pre time: ", self.timer.end())
         with torch.no_grad():
             self.timer.start()
             scores, boxes, seg_mask = self.net.forward(images)
             print("Inference time: ", self.timer.end())
+        self.timer.start()
         boxes = boxes[0]
         scores = scores[0]
         if not prob_threshold:
@@ -61,6 +66,8 @@ class Predictor:
                                       candidate_size=self.candidate_size)
             picked_box_probs.append(box_probs)
             picked_labels.extend([class_index] * box_probs.size(0))
+
+        print("after time: ", self.timer.end())
         if not picked_box_probs:
             return torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
         picked_box_probs = torch.cat(picked_box_probs)

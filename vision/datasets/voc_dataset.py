@@ -130,7 +130,7 @@ class VOCDataset:
         image = cv2.imread(str(image_file))
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         max_edge = max(image.shape[0],image.shape[1])
-        image = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
+        # image = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
 
         return image
 
@@ -140,7 +140,7 @@ class VOCDataset:
         mask = cv2.imread(str(mask_file))
         mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
         max_edge = max(mask.shape[0],mask.shape[1])
-        mask = cv2.copyMakeBorder(mask, 0, max_edge - mask.shape[0], 0, max_edge - mask.shape[1],cv2.BORDER_CONSTANT)
+        # mask = cv2.copyMakeBorder(mask, 0, max_edge - mask.shape[0], 0, max_edge - mask.shape[1],cv2.BORDER_CONSTANT)
 
         return mask
 

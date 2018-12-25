@@ -38,13 +38,13 @@ size_variance = 0.2
 #     SSDSpec(2, 384, SSDBoxSizes(640, 800), [2])
 # ]
 specs = [
-    SSDSpec(48, 16, SSDBoxSizes(40, 120), [2, 3, 5, 7]),
+    SSDSpec(48, 16, SSDBoxSizes(40, 120), [2, 3, 0.6, 0.4]),
 
-    SSDSpec(24, 32, SSDBoxSizes(120, 240), [2, 3, 5, 7]),
-    SSDSpec(12, 64, SSDBoxSizes(240, 360), [2, 3, 5, 7]),
-    SSDSpec(6, 128, SSDBoxSizes(360, 480), [2, 3, 5, 7]),
-    SSDSpec(3, 256, SSDBoxSizes(480, 640), [2, 3, 5, 7]),
-    SSDSpec(2, 384, SSDBoxSizes(640, 800), [2, 3, 5, 7])
+    SSDSpec(24, 32, SSDBoxSizes(120, 240), [2, 3, 0.6, 0.4]),
+    SSDSpec(12, 64, SSDBoxSizes(240, 360), [2, 3, 0.6, 0.4]),
+    SSDSpec(6, 128, SSDBoxSizes(360, 480), [2, 3, 0.6, 0.4]),
+    SSDSpec(3, 256, SSDBoxSizes(480, 640), [2, 3, 0.6, 0.4]),
+    SSDSpec(2, 384, SSDBoxSizes(640, 800), [2, 3, 0.6, 0.4])
 ]
 
 
