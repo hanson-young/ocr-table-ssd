@@ -23,11 +23,11 @@ parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 parser.add_argument('--net', default="jnet-ssd-lite",
                     help="The network architecture, it should be of mb1-ssd, mb1-ssd-lite, mb2-ssd-lite, jnet-ssd-lite or vgg16-ssd.")
 # model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-220-Loss-0.7154099260057721.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-1630-Loss-0.5886283823938081.pth', type=str)
 
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
-parser.add_argument("--dataset", default='/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped', type=str, help="The root directory of the VOC dataset or Open Images dataset.")
+parser.add_argument("--dataset", default='/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped_v1', type=str, help="The root directory of the VOC dataset or Open Images dataset.")
 parser.add_argument("--label_file", default='model_log/voc-model-labels.txt' ,type=str, help="The label file path.")
 parser.add_argument("--use_cuda", type=str2bool, default=True)
 parser.add_argument("--use_2007_metric", type=str2bool, default=True)
@@ -227,6 +227,11 @@ if __name__ == '__main__':
         print("process image", i)
         timer.start("Load Image")
         image, gt_mask = dataset.get_image(i)
+        # image = imutils.resize(image,image.shape[1], image.shape[0] * 2)
+        image = cv2.resize(image,(image.shape[1], image.shape[0] * 2))
+        max_edge = max(image.shape[0], image.shape[1])
+        image = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
+
         print("Load Image: {:4f} seconds.".format(timer.end("Load Image")))
         timer.start("Predict")
         boxes, labels, probs, masks= predictor.predict(image, gt_mask)
@@ -238,7 +243,8 @@ if __name__ == '__main__':
             probs.reshape(-1, 1),
             boxes + 1.0  # matlab's indexes start from 1
         ], dim=1))
-        orig_image = dataset.get_ori_image(i)
+        # orig_image = dataset.get_ori_image(i)
+        orig_image = image.copy()
         image_id, annotation = dataset.get_annotation(i)
         gt_boxes, classes, is_difficult = annotation
         # for i in range(gt_boxes.shape[0]):
@@ -276,7 +282,7 @@ if __name__ == '__main__':
         thresh_mask = (seg_mask * 255).astype(np.uint8)
         thresh_mask[thresh_mask > 127] = 255
         thresh_mask[thresh_mask <= 127] = 0
-        thresh_mask = cv2.resize(thresh_mask,(gt_mask.shape[1],gt_mask.shape[0]))
+        thresh_mask = cv2.resize(thresh_mask,(image.shape[1],image.shape[0]))
 
         horizon_mask = cv2.Sobel(thresh_mask, cv2.CV_8UC1, 0, 1, ksize=3)
         vertical_mask = cv2.Sobel(thresh_mask, cv2.CV_8UC1, 1, 0, ksize=3)

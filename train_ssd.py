@@ -31,8 +31,8 @@ parser = argparse.ArgumentParser(
 parser.add_argument("--dataset_type", default="voc", type=str,
                     help='Specify dataset type. Currently support voc and open_images.')
 
-parser.add_argument('--datasets', nargs='+', default="/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped", help='Dataset directory path')
-parser.add_argument('--validation_dataset', default="/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped", help='Dataset directory path')
+parser.add_argument('--datasets', nargs='+', default="/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped_v1", help='Dataset directory path')
+parser.add_argument('--validation_dataset', default="/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped_v1", help='Dataset directory path')
 parser.add_argument('--balance_data', default=False, action='store_true',
                     help="Balance training data by down-sampling more frequent labels.")
 
@@ -67,7 +67,7 @@ parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
 # model_log/jnet-ssd-lite-Epoch-40-Loss-8.033474040753914.pth
-parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-260-Loss-0.7147320622489566.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-50-Loss-7.689895167495266.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 

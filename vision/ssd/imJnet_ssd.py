@@ -53,7 +53,7 @@ class SSD(nn.Module):
 
         seg_mask = torch.sigmoid(x_l)
 
-        x = torch.cat([1 - seg_mask, x],1)
+        x = torch.cat([seg_mask, x],1)
 
         for end_layer_index in self.source_layer_indexes:
             if isinstance(end_layer_index, GraphPath):

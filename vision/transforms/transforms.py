@@ -363,6 +363,21 @@ class Expand(object):
 
         return image, boxes, labels, mask
 
+class CvtRatio(object):
+    def __call__(self, image, boxes=None, labels=None, mask = None):
+        h, w = image.shape[:2]
+        h_ratio = 2
+        image = cv2.resize(image,(w, h * h_ratio))
+        mask = cv2.resize(mask, (w, h * h_ratio))
+        max_edge = max(image.shape[0], image.shape[1])
+        image = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
+        mask = cv2.copyMakeBorder(mask, 0, max_edge - mask.shape[0], 0, max_edge - mask.shape[1],cv2.BORDER_CONSTANT)
+
+        boxes[:, 1] *= h_ratio
+        boxes[:, 3] *= h_ratio
+        # for box in boxes:
+        #     cv2.rectangle(image, (box[0], box[1]), (box[2], box[3]), (153, 153, 0), 1)
+        return image, boxes, labels, mask
 
 class RandomMirror(object):
     def __call__(self, image, boxes, classes, mask):
