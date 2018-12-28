@@ -123,7 +123,7 @@ class MobileNetV2(nn.Module):
         assert input_size % 32 == 0
         input_channel = int(input_channel * width_mult)
         self.last_channel = int(last_channel * width_mult) if width_mult > 1.0 else last_channel
-        self.features = [conv_bn(5, input_channel, 2, onnx_compatible=onnx_compatible)]
+        self.features = [conv_bn(4, input_channel, 2, onnx_compatible=onnx_compatible)]
         # building inverted residual blocks
         for t, c, n, s in interverted_residual_setting:
             output_channel = int(c * width_mult)

@@ -144,7 +144,7 @@ class imJNetV3(nn.Module):
         b19 = F.upsample_bilinear(self.final_cat(b18),scale_factor=2)
         b20 = torch.cat([b19, b002], 1)
         b21 = self.final(b20)
-        return b21, b002
+        return b21, x
 if __name__=='__main__':
     from torch.autograd import Variable
     import numpy as np

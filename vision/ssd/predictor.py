@@ -38,7 +38,7 @@ class Predictor:
         print("pre time: ", self.timer.end())
         with torch.no_grad():
             self.timer.start()
-            scores, boxes, seg_mask = self.net.forward(images)
+            scores, boxes, seg_mask, angle, Matrix, factor = self.net.forward(images)
             print("Inference time: ", self.timer.end())
         self.timer.start()
         boxes = boxes[0]
@@ -70,9 +70,14 @@ class Predictor:
         print("after time: ", self.timer.end())
         if not picked_box_probs:
             return torch.tensor([]), torch.tensor([]), torch.tensor([]), torch.tensor([])
+
         picked_box_probs = torch.cat(picked_box_probs)
-        picked_box_probs[:, 0] *= width
-        picked_box_probs[:, 1] *= height
-        picked_box_probs[:, 2] *= width
-        picked_box_probs[:, 3] *= height
-        return picked_box_probs[:, :4], torch.tensor(picked_labels), picked_box_probs[:, 4], seg_mask
+        # picked_box_probs[:, 0] *= (width / factor[0])
+        # picked_box_probs[:, 1] *= (height / factor[1])
+        # picked_box_probs[:, 2] *= (width / factor[0])
+        # picked_box_probs[:, 3] *= (height / factor[1])
+        picked_box_probs[:, 0] *= 768
+        picked_box_probs[:, 1] *= 768
+        picked_box_probs[:, 2] *= 768
+        picked_box_probs[:, 3] *= 768
+        return picked_box_probs[:, :4], torch.tensor(picked_labels), picked_box_probs[:, 4], seg_mask, angle, Matrix, factor

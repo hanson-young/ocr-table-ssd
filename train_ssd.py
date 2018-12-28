@@ -67,7 +67,7 @@ parser.add_argument('--base_net',default="",
                     help='Pretrained base model')
 # model_log/mb2-ssd-lite-Epoch-4975-Loss-1.1828593611717224.pth
 # model_log/jnet-ssd-lite-Epoch-40-Loss-8.033474040753914.pth
-parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-50-Loss-7.689895167495266.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
+parser.add_argument('--pretrained_ssd', default="model_log/jnet-ssd-lite-Epoch-40-Loss-7.413774490356445.pth", help='Pre-trained base model')#model_log/mb2-ssd-lite-Epoch-705-Loss-1.4045953154563904.pth
 parser.add_argument('--resume', default="", type=str,
                     help='Checkpoint state_dict file to resume training from')
 
@@ -104,8 +104,8 @@ parser.add_argument('--checkpoint_folder', default='model_log/',
 logging.basicConfig(stream=sys.stdout, level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 args = parser.parse_args()
-DEVICE = torch.device("cuda:0" if torch.cuda.is_available() and args.use_cuda else "cpu")
-device_ids = [0,1]
+DEVICE = torch.device("cuda:1" if torch.cuda.is_available() and args.use_cuda else "cpu")
+device_ids = [1,2]
 
 if args.use_cuda and torch.cuda.is_available():
     torch.backends.cudnn.benchmark = True
