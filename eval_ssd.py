@@ -1,19 +1,14 @@
 import torch
-from vision.ssd.vgg_ssd import create_vgg_ssd, create_vgg_ssd_predictor
-from vision.ssd.mobilenetv1_ssd import create_mobilenetv1_ssd, create_mobilenetv1_ssd_predictor
-from vision.ssd.mobilenetv1_ssd_lite import create_mobilenetv1_ssd_lite, create_mobilenetv1_ssd_lite_predictor
-from vision.ssd.squeezenet_ssd_lite import create_squeezenet_ssd_lite, create_squeezenet_ssd_lite_predictor
+
 from vision.datasets.voc_dataset import VOCDataset
-from vision.datasets.open_images import OpenImagesDataset
-from vision.utils import box_utils, measurements
+
 from vision.utils.misc import str2bool, Timer
 import argparse
 import pathlib
 import numpy as np
-import logging
-import sys
+
 import random
-from vision.ssd.mobilenet_v2_ssd_lite import create_mobilenetv2_ssd_lite, create_mobilenetv2_ssd_lite_predictor
+
 from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite
 from vision.ssd.imJnet_ssd_lite import create_imJnet_ssd_lite_predictor
 import cv2
@@ -21,7 +16,7 @@ import string
 import imutils
 parser = argparse.ArgumentParser(description="SSD Evaluation on VOC Dataset.")
 # model_log/jnet-ssd-lite-Epoch-210-Loss-0.6506194928113151.pth
-parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-200-Loss-0.6588389765132557.pth', type=str)
+parser.add_argument("--trained_model", default= 'model_log/jnet-ssd-lite-Epoch-1080-Loss-0.6063801158558239.pth', type=str)
 
 parser.add_argument("--dataset", default='/media/handsome/backupdata/hanson/ocr_table_dataset_v2/Cropped_v1', type=str, help="The root directory of the VOC dataset or Open Images dataset.")
 parser.add_argument("--label_file", default='model_log/voc-model-labels.txt' ,type=str, help="The label file path.")
