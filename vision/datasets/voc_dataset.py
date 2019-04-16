@@ -128,6 +128,7 @@ class VOCDataset:
         image_file = self.root / f"Images/{image_id}.png"
 
         image = cv2.imread(str(image_file))
+        image = cv2.imread('/home/handsome/Documents/code/pytorch-ocr/ocr-table-ssd/eval_results/example_img.png')
         image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
         max_edge = max(image.shape[0],image.shape[1])
         # image = cv2.copyMakeBorder(image, 0, max_edge - image.shape[0], 0, max_edge - image.shape[1],cv2.BORDER_CONSTANT)
@@ -138,6 +139,7 @@ class VOCDataset:
         mask_file = self.root / f"Segmentations/{image_id}.png"
         # print(image_file)
         mask = cv2.imread(str(mask_file))
+        mask = cv2.imread('/home/handsome/Documents/code/pytorch-ocr/ocr-table-ssd/eval_results/example_mask.png')
         mask = cv2.cvtColor(mask, cv2.COLOR_BGR2GRAY)
         max_edge = max(mask.shape[0],mask.shape[1])
         # mask = cv2.copyMakeBorder(mask, 0, max_edge - mask.shape[0], 0, max_edge - mask.shape[1],cv2.BORDER_CONSTANT)
